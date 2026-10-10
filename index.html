@@ -121,7 +121,8 @@
       status.className = 'ok';
       status.textContent = 'Done: ';
       status.appendChild(a);
-      status.appendChild(document.createTextNode(' (' + g3a.length.toLocaleString() + ' bytes) is downloading.'));
+      status.appendChild(document.createTextNode(' (' + g3a.length.toLocaleString() +
+        ' bytes) is saved in your downloads folder. Nothing downloaded? Click the name.'));
       a.click();
     } catch (e) {
       say(e.message, 'err');
