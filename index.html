@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wolfenstein 3D for the fx-CG50</title>
+<meta name="description" content="Turn Kelli's fx-9860 Wolfenstein 3D (.g1a) into an fx-CG50 add-in (.g3a), in your browser.">
+<style>
+  :root {
+    --bg: #f6f6f4; --fg: #1d1d1f; --muted: #5f6368; --card: #ffffff; --line: #d9d9d6;
+    --accent: #b3261e; --ok: #1e7b34; --drop: #fbf3f2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161618; --fg: #ececec; --muted: #a0a0a6; --card: #1f1f22; --line: #36363b;
+      --accent: #ff6b5e; --ok: #5fd27a; --drop: #2a1f1f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 680px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 1.7rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  h2 { font-size: 1.05rem; margin: 28px 0 8px; }
+  ol { padding-left: 1.3em; margin: 0; }
+  li { margin: 6px 0; }
+  a { color: var(--accent); }
+  #drop {
+    margin: 12px 0 4px; padding: 28px 16px; text-align: center; cursor: pointer;
+    border: 2px dashed var(--line); border-radius: 12px; background: var(--card);
+  }
+  #drop.over { border-color: var(--accent); background: var(--drop); }
+  #drop strong { display: block; font-size: 1.05rem; }
+  #drop span { color: var(--muted); font-size: 0.92rem; }
+  #status { min-height: 1.6em; margin: 10px 0 0; }
+  #status.err { color: var(--accent); }
+  #status.ok { color: var(--ok); }
+  #status a { color: inherit; font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; background: var(--card); border-radius: 8px; overflow: hidden; }
+  td { padding: 6px 12px; border-top: 1px solid var(--line); }
+  tr:first-child td { border-top: 0; }
+  td:first-child { white-space: nowrap; font-weight: 600; width: 34%; }
+  .note { color: var(--muted); font-size: 0.92rem; }
+  footer { margin-top: 36px; color: var(--muted); font-size: 0.88rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Wolfenstein 3D for the fx-CG50</h1>
+  <p class="sub">Kelli's fx-9860 game, running on the fx-CG50 / Graph 90+E. The conversion happens in
+    your browser: nothing is uploaded.</p>
+
+  <h2>1. Get the game</h2>
+  <p>Download <strong>file 2 (the SH4 version)</strong> of
+    <a href="https://www.planet-casio.com/Fr/programmes/programme1967-1-wolfenstein-3d-Kelly-.html">Last
+    Wolfenstein 3D by Kelli</a> on Planète Casio.</p>
+
+  <h2>2. Convert it</h2>
+  <label id="drop">
+    <strong>Drop the .g1a here</strong>
+    <span>or click to choose it</span>
+    <input id="file" type="file" accept=".g1a" hidden>
+  </label>
+  <p id="status" role="status"></p>
+
+  <h2>3. Copy it to the calculator</h2>
+  <p>Connect the calculator with USB, choose <em>USB Flash</em>, copy <code>Wolf3D.g3a</code> to it and
+    disconnect. <em>Wolf3D</em> appears in the main menu.</p>
+
+  <h2>Keys</h2>
+  <table>
+    <tr><td>Arrows</td><td>move and turn</td></tr>
+    <tr><td>SHIFT</td><td>shoot</td></tr>
+    <tr><td>ALPHA</td><td>open doors</td></tr>
+    <tr><td>F1 / F2</td><td>knife / gun</td></tr>
+    <tr><td>F6 / F5</td><td>hide / show the status bar</td></tr>
+    <tr><td>MENU</td><td>pause</td></tr>
+    <tr><td>EXIT</td><td>quit</td></tr>
+    <tr><td>+ / −</td><td>faster / slower (the blocks at the bottom right show the speed)</td></tr>
+  </table>
+
+  <h2>How it works</h2>
+  <p class="note">Both calculators run SuperH code, and their operating systems load add-ins at the same
+    address, so the game's own code runs unchanged. A small shim takes the place of the fx-9860's system
+    calls, draws the 128×64 screen three times larger, and slows the game to the pace it had on the
+    fx-9860. This page adds the shim to the copy of the game you choose; it contains no part of the
+    game itself.</p>
+
+  <footer>
+    Game © Kelli. Shim and converter: <a href="https://github.com/hexbinoct/wolf3d-cg50">source on GitHub</a>.
+    Not affiliated with Casio or id Software.
+  </footer>
+</main>
+
+<script src="payload.js"></script>
+<script src="convert.js"></script>
+<script>
+  const drop = document.getElementById('drop');
+  const input = document.getElementById('file');
+  const status = document.getElementById('status');
+
+  function say(text, kind) {
+    status.className = kind || '';
+    status.textContent = text;
+  }
+
+  async function handle(file) {
+    if (!file) return;
+    say('Converting…');
+    try {
+      const g1a = new Uint8Array(await file.arrayBuffer());
+      const g3a = await convertG1a(g1a, WOLF_PAYLOAD);
+      const url = URL.createObjectURL(new Blob([g3a], { type: 'application/octet-stream' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Wolf3D.g3a';
+      a.textContent = 'Wolf3D.g3a';
+      status.className = 'ok';
+      status.textContent = 'Done: ';
+      status.appendChild(a);
+      status.appendChild(document.createTextNode(' (' + g3a.length.toLocaleString() + ' bytes) is downloading.'));
+      a.click();
+    } catch (e) {
+      say(e.message, 'err');
+    }
+  }
+
+  input.addEventListener('change', () => handle(input.files[0]));
+  ['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => {
+    e.preventDefault();
+    drop.classList.add('over');
+  }));
+  ['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => {
+    e.preventDefault();
+    drop.classList.remove('over');
+  }));
+  drop.addEventListener('drop', (e) => handle(e.dataTransfer.files[0]));
+  if (!window.crypto || !crypto.subtle) say('This browser cannot check the file (no Web Crypto). Open the page over https.', 'err');
+</script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+build/
+*.g1a
+*.g3a
+.DS_Store
